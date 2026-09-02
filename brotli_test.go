@@ -290,7 +290,9 @@ func TestDecoderStreaming(t *testing.T) {
 
 	ch := make(chan []byte)
 	errch := make(chan error)
+	done := make(chan struct{})
 	go func() {
+		defer close(done)
 		for {
 			segment, ok := <-ch
 			if !ok {
@@ -306,7 +308,10 @@ func TestDecoderStreaming(t *testing.T) {
 			}
 		}
 	}()
-	defer close(ch)
+	defer func() {
+		close(ch)
+		<-done
+	}()
 
 	segments := [...][]byte{
 		[]byte("first"),
@@ -618,6 +623,34 @@ func BenchmarkDecodeLevels(b *testing.B) {
 			b.SetBytes(int64(len(opticks)))
 			for i := 0; i < b.N; i++ {
 				io.Copy(ioutil.Discard, NewReader(bytes.NewReader(compressed)))
+			}
+		})
+	}
+}
+
+func BenchmarkDecodeLevelsReset(b *testing.B) {
+	opticks, err := os.ReadFile("testdata/Isaac.Newton-Opticks.txt")
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	for level := BestSpeed; level <= BestCompression; level++ {
+		var encoded bytes.Buffer
+		w := NewWriterLevel(&encoded, level)
+		_, _ = w.Write(opticks)
+		_ = w.Close()
+		compressed := encoded.Bytes()
+		src := bytes.NewReader(compressed)
+		r := NewReader(src)
+		_, _ = io.Copy(io.Discard, r)
+
+		b.Run(fmt.Sprintf("%d", level), func(b *testing.B) {
+			b.ReportAllocs()
+			b.SetBytes(int64(len(opticks)))
+			for i := 0; i < b.N; i++ {
+				src.Reset(compressed)
+				_ = r.Reset(src)
+				_, _ = io.Copy(io.Discard, r)
 			}
 		})
 	}

@@ -957,10 +957,7 @@ func decodeContextMap(context_map_size uint32, num_htrees *uint32, context_map_a
 
 		(*num_htrees)++
 		s.context_index = 0
-		*context_map_arg = make([]byte, uint(context_map_size))
-		if *context_map_arg == nil {
-			return decoderErrorAllocContextMap
-		}
+		resizeByteBuffer(context_map_arg, context_map_size)
 
 		if *num_htrees <= 1 {
 			for i := 0; i < int(context_map_size); i++ {
@@ -2315,11 +2312,7 @@ func decoderDecompressStream(s *Reader, available_in *uint, next_in *[]byte, ava
 				bits >>= 2
 				s.num_direct_distance_codes = numDistanceShortCodes + (bits << s.distance_postfix_bits)
 				s.distance_postfix_mask = int(bitMask(s.distance_postfix_bits))
-				s.context_modes = make([]byte, uint(s.num_block_types[0]))
-				if s.context_modes == nil {
-					result = decoderErrorAllocContextModes
-					break
-				}
+				resizeByteBuffer(&s.context_modes, s.num_block_types[0])
 
 				s.loop_counter = 0
 				s.state = stateContextModes

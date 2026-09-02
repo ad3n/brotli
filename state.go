@@ -204,9 +204,9 @@ func decoderStateInit(s *Reader) bool {
 	s.new_ringbuffer_size = 0
 	s.ringbuffer_mask = 0
 
-	s.context_map = nil
-	s.context_modes = nil
-	s.dist_context_map = nil
+	s.context_map = s.context_map[:0]
+	s.context_modes = s.context_modes[:0]
+	s.dist_context_map = s.dist_context_map[:0]
 	s.context_map_slice = nil
 	s.dist_context_map_slice = nil
 
@@ -252,9 +252,9 @@ func decoderStateMetablockBegin(s *Reader) {
 	s.block_type_rb[3] = 0
 	s.block_type_rb[4] = 1
 	s.block_type_rb[5] = 0
-	s.context_map = nil
-	s.context_modes = nil
-	s.dist_context_map = nil
+	s.context_map = s.context_map[:0]
+	s.context_modes = s.context_modes[:0]
+	s.dist_context_map = s.dist_context_map[:0]
 	s.context_map_slice = nil
 	s.literal_htree = nil
 	s.dist_context_map_slice = nil
@@ -266,9 +266,9 @@ func decoderStateMetablockBegin(s *Reader) {
 }
 
 func decoderStateCleanupAfterMetablock(s *Reader) {
-	s.context_modes = nil
-	s.context_map = nil
-	s.dist_context_map = nil
+	s.context_modes = s.context_modes[:0]
+	s.context_map = s.context_map[:0]
+	s.dist_context_map = s.dist_context_map[:0]
 	cleanupHTrees(s)
 }
 
@@ -298,6 +298,16 @@ func makeCodesBuffer(group *huffmanTreeGroup, codesLen uint) {
 	}
 
 	group.codes = group.codes[:codesLen]
+}
+
+func resizeByteBuffer(buf *[]byte, size uint32) {
+	if cap(*buf) < int(size) {
+		*buf = make([]byte, size)
+		return
+	}
+
+	*buf = (*buf)[:size]
+	clear(*buf)
 }
 
 func cleanupCodes(s *Reader) {

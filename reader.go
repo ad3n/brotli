@@ -37,6 +37,9 @@ func (r *Reader) Reset(src io.Reader) error {
 		*r = Reader{
 			buf:              r.buf,
 			block_type_trees: r.block_type_trees,
+			context_map:      r.context_map,
+			context_modes:    r.context_modes,
+			dist_context_map: r.dist_context_map,
 			literal_hgroup: huffmanTreeGroup{
 				htrees: r.literal_hgroup.htrees,
 				codes:  r.literal_hgroup.codes,
