@@ -5,7 +5,54 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 )
+
+var httpBrotliWriterPools [BestCompression + 1]sync.Pool
+
+type pooledHTTPBrotliWriter struct {
+	writer *Writer
+	pool   *sync.Pool
+}
+
+func (w *pooledHTTPBrotliWriter) Write(p []byte) (int, error) {
+	if w.writer == nil {
+		return 0, errWriterClosed
+	}
+
+	return w.writer.Write(p)
+}
+
+func (w *pooledHTTPBrotliWriter) Close() error {
+	if w.writer == nil {
+		return errWriterClosed
+	}
+
+	writer := w.writer
+	w.writer = nil
+	err := writer.Close()
+	w.pool.Put(writer)
+
+	return err
+}
+
+func newHTTPBrotliWriter(dst io.Writer, level int) io.WriteCloser {
+	if level < BestSpeed || level > BestCompression {
+		return NewWriterLevel(dst, level)
+	}
+
+	pool := &httpBrotliWriterPools[level]
+	writer, _ := pool.Get().(*Writer)
+	if writer != nil {
+		writer.Reset(dst)
+
+		return &pooledHTTPBrotliWriter{writer: writer, pool: pool}
+	}
+
+	writer = NewWriterLevel(dst, level)
+
+	return &pooledHTTPBrotliWriter{writer: writer, pool: pool}
+}
 
 // HTTPCompressor chooses a compression method (brotli, gzip, or none) based on
 // the Accept-Encoding header, sets the Content-Encoding header, and returns a
@@ -24,7 +71,7 @@ func HTTPCompressorWithLevel(w http.ResponseWriter, r *http.Request, level int) 
 	switch encoding {
 	case "br":
 		w.Header().Set("Content-Encoding", "br")
-		return NewWriterLevel(w, level)
+		return newHTTPBrotliWriter(w, level)
 	case "gzip":
 		if gzw, err := gzip.NewWriterLevel(w, level); err == nil {
 			w.Header().Set("Content-Encoding", "gzip")

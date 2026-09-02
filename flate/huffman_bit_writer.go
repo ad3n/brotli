@@ -5,7 +5,7 @@
 package flate
 
 import (
-	"github.com/andybalholm/brotli/matchfinder"
+	"github.com/ad3n/brotli/matchfinder"
 )
 
 const (

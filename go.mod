@@ -1,4 +1,4 @@
-module github.com/andybalholm/brotli
+module github.com/ad3n/brotli
 
 go 1.26
 

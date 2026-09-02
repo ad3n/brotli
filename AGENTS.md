@@ -32,8 +32,30 @@ compatible, or faster based only on code inspection.
   empty, truncated, malformed, and zero-value inputs when they are relevant.
 - Run `go test ./...` and `go vet ./...`. Run `go mod tidy -diff` when module
   metadata or dependencies change.
+- Run `staticcheck ./...`. Treat every diagnostic as a blocking finding; fix the
+  cause rather than suppressing it. A suppression requires a documented false
+  positive and the narrowest possible `//lint:ignore <check> <reason>` directive.
 - In the final report, state the compatibility impact and the evidence. If a
   compatibility dimension is not applicable, say why.
+
+## Go control-flow style
+
+- Do not introduce `else` or `else if` in Go code. Use guard clauses, early
+  returns, `continue`, default values followed by an `if`, `switch`, or helper
+  extraction while preserving control flow.
+- When modifying an existing function, remove pre-existing `else` and `else if`
+  from that function when doing so does not expand the behavioral scope or make
+  the change materially harder to review.
+- Do not add a blank line immediately after the opening brace of an `if`, `for`,
+  `switch`, function, or similar block.
+- Add a blank line after the closing brace of an `if`, `for`, `switch`, or
+  similar block before the next statement. Do not add that blank line when the
+  next statement is `defer` or another closing brace.
+- Add a blank line before `return` when the same multi-line block contains
+  preceding statements. Preserve control flow exactly when applying layout
+  rules.
+- Before handoff, audit changed Go files with a direct search for `else`. Any
+  newly introduced `else` or `else if` is a blocking finding.
 
 ## Prove performance impact
 
